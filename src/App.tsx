@@ -5,68 +5,51 @@ function App() {
   const [display, setDisplay] = useState('0');
   const [history, setHistory] = useState<string[]>([]);
   const [showHistory, setShowHistory] = useState(false);
+  const [awaitingNumber, setAwaitingNumber] = useState(false);
+  const [currentFunction, setCurrentFunction] = useState('');
 
   const handleNumber = (num: string) => {
-    setDisplay(prev => prev === '0' ? num : prev + num);
+    if (awaitingNumber) {
+      setDisplay(num);
+      setAwaitingNumber(false);
+    } else {
+      setDisplay(prev => prev === '0' ? num : prev + num);
+    }
   };
 
   const handleOperator = (op: string) => {
     setDisplay(prev => prev + op);
+    setAwaitingNumber(false);
   };
 
-  const handleScientific = (func: string) => {
-    try {
-      let result: number;
-      const currentNum = parseFloat(display);
-
-      switch (func) {
-        case 'sin':
-          result = Math.sin(currentNum * Math.PI / 180);
-          break;
-        case 'cos':
-          result = Math.cos(currentNum * Math.PI / 180);
-          break;
-        case 'tan':
-          result = Math.tan(currentNum * Math.PI / 180);
-          break;
-        case 'log':
-          result = Math.log10(currentNum);
-          break;
-        case 'ln':
-          result = Math.log(currentNum);
-          break;
-        case 'sqrt':
-          result = Math.sqrt(currentNum);
-          break;
-        case 'square':
-          result = Math.pow(currentNum, 2);
-          break;
-        case 'cube':
-          result = Math.pow(currentNum, 3);
-          break;
-        case 'pi':
-          result = Math.PI;
-          break;
-        case 'e':
-          result = Math.E;
-          break;
-        default:
-          return;
-      }
-
-      const formattedResult = Number.isInteger(result) ? result.toString() : result.toFixed(8).replace(/\.?0+$/, '');
-      setHistory(prev => [...prev, `${func}(${display}) = ${formattedResult}`]);
-      setDisplay(formattedResult);
-    } catch (error) {
-      setDisplay('Error');
+  const handleScientificFunction = (func: string) => {
+    if (func === 'pi' || func === 'e') {
+      // Handle constants immediately
+      let value = func === 'pi' ? Math.PI : Math.E;
+      const formattedValue = value.toFixed(8).replace(/\.?0+$/, '');
+      setHistory(prev => [...prev, `${func} = ${formattedValue}`]);
+      setDisplay(formattedValue);
+    } else {
+      // For other functions, prepare to receive number input
+      setCurrentFunction(func);
+      setAwaitingNumber(true);
+      setDisplay('0');
     }
   };
 
   const calculate = () => {
     try {
-      const expression = display.replace(/×/g, '*').replace(/÷/g, '/');
+      let expression = display;
+      
+      // If we have a pending function, wrap the current display in it
+      if (currentFunction && !display.includes(currentFunction)) {
+        expression = `${currentFunction}(${display})`;
+        setCurrentFunction('');
+      }
+
+      expression = expression.replace(/×/g, '*').replace(/÷/g, '/');
       const result = eval(expression).toString();
-      setHistory(prev => [...prev, `${display} = ${result}`]);
+      setHistory(prev => [...prev, `${expression} = ${result}`]);
       setDisplay(result);
     } catch (error) {
       setDisplay('Error');
@@ -75,6 +58,8 @@ function App() {
 
   const clear = () => {
     setDisplay('0');
+    setCurrentFunction('');
+    setAwaitingNumber(false);
   };
 
   const deleteLastChar = () => {
@@ -108,7 +93,9 @@ function App() {
                 >
                   <History size={20} />
                 </button>
-                <span className="text-gray-400 text-sm">Scientific Calculator</span>
+                <span className="text-gray-400 text-sm">
+                  {currentFunction && awaitingNumber ? `${currentFunction}(...)` : 'Scientific Calculator'}
+                </span>
               </div>
             </div>
             <div className="h-20 flex items-end justify-end">
@@ -134,34 +121,34 @@ function App() {
           <div className="flex">
             {/* Scientific Panel */}
             <div className="grid grid-cols-3 gap-2 p-4 bg-gray-800 border-r border-gray-700">
-              <Button onClick={() => handleScientific('sin')} className="bg-gray-700 text-white text-sm">
+              <Button onClick={() => handleScientificFunction('sin')} className="bg-gray-700 text-white text-sm">
                 sin
               </Button>
-              <Button onClick={() => handleScientific('cos')} className="bg-gray-700 text-white text-sm">
+              <Button onClick={() => handleScientificFunction('cos')} className="bg-gray-700 text-white text-sm">
                 cos
               </Button>
-              <Button onClick={() => handleScientific('tan')} className="bg-gray-700 text-white text-sm">
+              <Button onClick={() => handleScientificFunction('tan')} className="bg-gray-700 text-white text-sm">
                 tan
               </Button>
-              <Button onClick={() => handleScientific('log')} className="bg-gray-700 text-white text-sm">
+              <Button onClick={() => handleScientificFunction('log')} className="bg-gray-700 text-white text-sm">
                 log
               </Button>
-              <Button onClick={() => handleScientific('ln')} className="bg-gray-700 text-white text-sm">
+              <Button onClick={() => handleScientificFunction('ln')} className="bg-gray-700 text-white text-sm">
                 ln
               </Button>
-              <Button onClick={() => handleScientific('sqrt')} className="bg-gray-700 text-white text-sm">
+              <Button onClick={() => handleScientificFunction('sqrt')} className="bg-gray-700 text-white text-sm">
                 √
               </Button>
-              <Button onClick={() => handleScientific('square')} className="bg-gray-700 text-white text-sm">
+              <Button onClick={() => handleScientificFunction('square')} className="bg-gray-700 text-white text-sm">
                 x²
               </Button>
-              <Button onClick={() => handleScientific('cube')} className="bg-gray-700 text-white text-sm">
+              <Button onClick={() => handleScientificFunction('cube')} className="bg-gray-700 text-white text-sm">
                 x³
               </Button>
-              <Button onClick={() => handleScientific('pi')} className="bg-gray-700 text-white text-sm">
+              <Button onClick={() => handleScientificFunction('pi')} className="bg-gray-700 text-white text-sm">
                 π
               </Button>
-              <Button onClick={() => handleScientific('e')} className="bg-gray-700 text-white text-sm">
+              <Button onClick={() => handleScientificFunction('e')} className="bg-gray-700 text-white text-sm">
                 e
               </Button>
               <Button onClick={() => handleOperator('(')} className="bg-gray-700 text-white text-sm">
